@@ -3,44 +3,45 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:flutter/material.dart';
-import 'package:flutter_blue/flutter_blue.dart';
+// import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+
 
 class ScanResultTile extends StatelessWidget {
-  const ScanResultTile({Key? key, required this.result, this.onTap})
-      : super(key: key);
+  const ScanResultTile({super.key, required this.result, this.onTap});
 
   final ScanResult result;
   final VoidCallback? onTap;
 
   Widget _buildTitle(BuildContext context) {
-    if (result.device.name.length > 0) {
+    if (result.device.platformName.isNotEmpty) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            result.device.name,
+            result.device.platformName,
             overflow: TextOverflow.ellipsis,
           ),
           Text(
-            result.device.id.toString(),
+            result.device.remoteId.toString(),
             style: Theme.of(context).textTheme.bodySmall,
           )
         ],
       );
     } else {
-      return Text(result.device.id.toString());
+      return Text(result.device.remoteId.toString());
     }
   }
 
   Widget _buildAdvRow(BuildContext context, String title, String value) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(title, style: Theme.of(context).textTheme.bodySmall),
-          SizedBox(
+          const SizedBox(
             width: 12.0,
           ),
           Expanded(
@@ -92,16 +93,16 @@ class ScanResultTile extends StatelessWidget {
       title: _buildTitle(context),
       leading: Text(result.rssi.toString()),
       trailing: ElevatedButton(
-        child: Text('CONNECT'),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.black, // Set the background color
           foregroundColor: Colors.white, // Set the text color
         ),
         onPressed: (result.advertisementData.connectable) ? onTap : null,
+        child: const Text('CONNECT'),
       ),
       children: <Widget>[
         _buildAdvRow(
-            context, 'Complete Local Name', result.advertisementData.localName),
+            context, 'Complete Local Name', result.advertisementData.advName),
         _buildAdvRow(context, 'Tx Power Level',
             '${result.advertisementData.txPowerLevel ?? 'N/A'}'),
         _buildAdvRow(context, 'Manufacturer Data',
@@ -113,7 +114,7 @@ class ScanResultTile extends StatelessWidget {
                 ? result.advertisementData.serviceUuids.join(', ').toUpperCase()
                 : 'N/A'),
         _buildAdvRow(context, 'Service Data',
-            getNiceServiceData(result.advertisementData.serviceData)),
+            getNiceServiceData(result.advertisementData.serviceData.cast<String, List<int>>())),
       ],
     );
   }
@@ -124,18 +125,17 @@ class ServiceTile extends StatelessWidget {
   final List<CharacteristicTile> characteristicTiles;
 
   const ServiceTile(
-      {Key? key, required this.service, required this.characteristicTiles})
-      : super(key: key);
+      {super.key, required this.service, required this.characteristicTiles});
 
   @override
   Widget build(BuildContext context) {
-    if (characteristicTiles.length > 0) {
+    if (characteristicTiles.isNotEmpty) {
       return ExpansionTile(
         title: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('Service'),
+            const Text('Service'),
             Text('0x${service.uuid.toString().toUpperCase().substring(4, 8)}',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Theme.of(context).textTheme.bodySmall?.color))
@@ -145,7 +145,7 @@ class ServiceTile extends StatelessWidget {
       );
     } else {
       return ListTile(
-        title: Text('Service'),
+        title: const Text('Service'),
         subtitle:
             Text('0x${service.uuid.toString().toUpperCase().substring(4, 8)}'),
       );
@@ -161,18 +161,17 @@ class CharacteristicTile extends StatelessWidget {
   final VoidCallback? onNotificationPressed;
 
   const CharacteristicTile(
-      {Key? key,
+      {super.key,
       required this.characteristic,
       required this.descriptorTiles,
       this.onReadPressed,
       this.onWritePressed,
-      this.onNotificationPressed})
-      : super(key: key);
+      this.onNotificationPressed});
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<int>>(
-      stream: characteristic.value,
+      stream: characteristic.lastValueStream,
       initialData: characteristic.lastValue,
       builder: (c, snapshot) {
         final value = snapshot.data;
@@ -182,7 +181,7 @@ class CharacteristicTile extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text('Characteristic'),
+                const Text('Characteristic'),
                 Text(
                     '0x${characteristic.uuid.toString().toUpperCase().substring(4, 8)}',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -190,7 +189,7 @@ class CharacteristicTile extends StatelessWidget {
               ],
             ),
             subtitle: Text(value.toString()),
-            contentPadding: EdgeInsets.all(0.0),
+            contentPadding: const EdgeInsets.all(0.0),
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -230,11 +229,10 @@ class DescriptorTile extends StatelessWidget {
   final VoidCallback? onWritePressed;
 
   const DescriptorTile(
-      {Key? key,
+      {super.key,
       required this.descriptor,
       this.onReadPressed,
-      this.onWritePressed})
-      : super(key: key);
+      this.onWritePressed});
 
   @override
   Widget build(BuildContext context) {
@@ -243,14 +241,14 @@ class DescriptorTile extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Descriptor'),
+          const Text('Descriptor'),
           Text('0x${descriptor.uuid.toString().toUpperCase().substring(4, 8)}',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Theme.of(context).textTheme.bodySmall?.color))
         ],
       ),
       subtitle: StreamBuilder<List<int>>(
-        stream: descriptor.value,
+        stream: descriptor.onValueReceived,
         initialData: descriptor.lastValue,
         builder: (c, snapshot) => Text(snapshot.data.toString()),
       ),
@@ -278,9 +276,9 @@ class DescriptorTile extends StatelessWidget {
 }
 
 class AdapterStateTile extends StatelessWidget {
-  const AdapterStateTile({Key? key, required this.state}) : super(key: key);
+  const AdapterStateTile({super.key, required this.state});
 
-  final BluetoothState state;
+  final BluetoothAdapterState state;
 
   @override
   Widget build(BuildContext context) {
@@ -294,6 +292,38 @@ class AdapterStateTile extends StatelessWidget {
         trailing: Icon(
           Icons.error,
           color: Theme.of(context).primaryTextTheme.titleMedium?.color,
+        ),
+      ),
+    );
+  }
+}
+class BluetoothOffScreen extends StatelessWidget {
+  const BluetoothOffScreen({super.key, this.state});
+
+  // Changed from BluetoothState to BluetoothAdapterState to match flutter_blue_plus
+  final BluetoothAdapterState? state;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.lightBlue,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Icon(
+              Icons.bluetooth_disabled,
+              size: 200.0,
+              color: Colors.white54,
+            ),
+            Text(
+              'Bluetooth Adapter is ${state != null ? state.toString().substring('BluetoothAdapterState.'.length) : 'not available'}.',
+              style: Theme.of(context)
+                  .primaryTextTheme
+                  .titleSmall
+                  ?.copyWith(color: Colors.white),
+            ),
+          ],
         ),
       ),
     );

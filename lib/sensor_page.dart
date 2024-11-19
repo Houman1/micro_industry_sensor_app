@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:convert' show utf8;
-import 'package:flutter_blue/flutter_blue.dart';
+// import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'dart:async';
 
 class SensorPage extends StatefulWidget {
-  const SensorPage({Key? key, required this.device}) : super(key: key);
+  const SensorPage({super.key, required this.device});
 
   final BluetoothDevice device;
 
@@ -27,12 +28,7 @@ class _SensorPageState extends State<SensorPage> {
   }
 
   connectToDevice() async {
-    if (widget.device == null) {
-      _Pop();
-      return;
-    }
-
-    new Timer(const Duration(seconds: 15), () {
+    Timer(const Duration(seconds: 15), () {
       if (!isReady) {
         disconnectFromDevice();
         _Pop();
@@ -43,64 +39,31 @@ class _SensorPageState extends State<SensorPage> {
   }
 
   disconnectFromDevice() {
-    if (widget.device == null) {
-      _Pop();
-      return;
-    }
-
     widget.device.disconnect();
   }
 
   discoverServices() async {
-    if (widget.device == null) {
-      _Pop();
-      return;
-    }
-
     List<BluetoothService> services = await widget.device.discoverServices();
-    services.forEach((service) {
+    for (var service in services) {
       if (service.uuid.toString() == SERVICE_UUID) {
-        service.characteristics.forEach((characteristic) {
+        for (var characteristic in service.characteristics) {
           if (characteristic.uuid.toString() == CHARACTERISTIC_UUID) {
             characteristic.setNotifyValue(!characteristic.isNotifying);
-            stream = characteristic.value;
+            stream = characteristic.lastValueStream;
 
             setState(() {
               isReady = true;
             });
           }
-        });
+        }
       }
-    });
+    }
 
     if (!isReady) {
       _Pop();
     }
   }
 
-  Future<bool> _onWillPop() async {
-    return (await showDialog(
-          context: context,
-          builder: (context) => new AlertDialog(
-            title: Text('Are you sure?'),
-            content: Text('Do you want to disconnect device and go back?'),
-            actions: <Widget>[
-              new TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: new Text('No'),
-              ),
-              new TextButton(
-                onPressed: () {
-                  disconnectFromDevice();
-                  Navigator.of(context).pop(true);
-                },
-                child: new Text('Yes'),
-              ),
-            ],
-          ),
-        )) ??
-        false;
-  }
 
   _Pop() {
     Navigator.of(context).pop(true);
@@ -112,15 +75,14 @@ class _SensorPageState extends State<SensorPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Micro Industry Sensor App'),
+          title: const Text('Micro Industry Sensor App'),
         ),
         body: Container(
             child: !isReady
-                ? Center(
+                ? const Center(
                     child: Text(
                       "Waiting...",
                       style: TextStyle(fontSize: 24, color: Colors.red),
@@ -131,8 +93,9 @@ class _SensorPageState extends State<SensorPage> {
                       stream: stream,
                       builder: (BuildContext context,
                           AsyncSnapshot<List<int>> snapshot) {
-                        if (snapshot.hasError)
+                        if (snapshot.hasError) {
                           return Text('Error: ${snapshot.error}');
+                        }
 
                         if (snapshot.connectionState ==
                             ConnectionState.active) {
@@ -143,16 +106,16 @@ class _SensorPageState extends State<SensorPage> {
                               child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: <Widget>[
-                                Text('Current value from Sensor',
+                                const Text('Current value from Sensor',
                                     style: TextStyle(fontSize: 14)),
                                 //below is the value and the unit of the value shown.
-                                Text('${currentValue} L',
-                                    style: TextStyle(
+                                Text('$currentValue L',
+                                    style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 24))
                               ]));
                         } else {
-                          return Text('Check the stream');
+                          return const Text('Check the stream');
                         }
                       },
                     ),
